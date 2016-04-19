@@ -1,0 +1,182 @@
+<html>
+<head>
+ <title>D3 Scatter Plot Visualization of Car Data</title>
+  <script src="bower_components/jQuery/dist/jquery.js"></script>
+  <script src="bower_components/d3/d3.min.js"></script>
+  
+<style>
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+}
+
+.dot {
+  stroke: #000;
+}
+
+</style>
+</head>
+<body>
+<h3> Group Members: Ankeet Ghosh (Net Id: ag5347), Suhita Goswami (Net Id: sg4565) </h3>
+<h4 id="hovered">chevrolet chevelle malibu</h4>
+
+<div class="plot"  >
+  <svg id="chart1" width="100%" height="100%" ></svg>
+</div>
+<div class="ui">
+  <div>
+    <label>X-Axis</label>
+    <select id="selx">
+	  <option value="displacement">displacement</option>
+      <option value="mpg">mpg</option>
+	  <option value="cylinders">cylinders</option>
+	  <option value="horsepower">horsepower</option>
+	  <option value="weight">weight</option>
+	  <option value="acceleration">acceleration</option>
+	  <option value="origin">origin</option>
+    </select>
+    <label>Y-Axis</label>
+    <select id="sely">
+	  <option value="mpg">mpg</option>
+	  <option value="displacement">displacement</option>
+	  <option value="cylinders">cylinders</option>
+	  <option value="horsepower">horsepower</option>
+	  <option value="weight">weight</option>
+	  <option value="acceleration">acceleration</option>
+	  <option value="origin">origin</option>
+    </select>
+  </div>
+  <div>
+    <input id="mpgmin" type="text" value="0" size="10">
+    <input id="mpgmax" type="text" value="30" size="10">
+    <button id="alter">Query MPG</button>
+  </div>
+</div>
+
+<script>
+
+d3.csv("car.csv", function(error, data) {
+    data.forEach(function(d) {
+        d.mpg = +d.mpg;
+		d.cylinders = +d.cylinders;
+        d.displacement = +d.displacement;
+        d.horsepower = +d.horsepower;
+        d.weight = +d.weight;
+        d.acceleration = +d.acceleration;
+    });
+
+var margin = {top: 40, bottom: 30, left: 60, right: 30};
+var width = 600;
+var height = 500;
+			
+var x = d3.scale.linear().domain(d3.extent(data, function(d) { return d.displacement; })).range([0, width]);
+var y = d3.scale.linear().domain(d3.extent(data, function(d) { return d.mpg; })).range([height, 0]);
+
+var xAxis = d3.svg.axis().scale(x).orient("bottom");
+var yAxis = d3.svg.axis().scale(y).orient("left");
+
+
+var svg = d3.select("#chart1").append("svg")
+         .attr("width", width + margin.left + margin.right)
+		 .attr("height", height + margin.top + margin.bottom)
+         .append("g")
+         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+
+svg.append("g")
+	.attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+	.append("text")
+	.attr("class", "update")
+    .style("text-anchor", "end")
+    .attr("x", width)
+    .attr("y", -5 )
+    .text(selx.value);
+	
+svg.append("g")
+    .attr("class", "y axis")
+	.append("text")
+	.attr("class", "update")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 5)
+    .attr("dy", ".71em")
+    .style("text-anchor", "end")
+    .text(sely.value)
+		
+svg.selectAll("g.y.axis").call(yAxis);
+svg.selectAll("g.x.axis").call(xAxis);
+		
+var points = svg.selectAll("circle")           
+    .data(data)
+    .enter().append("circle")
+    .attr("r", 5)
+    .attr("cx", function(d) { return x(d.displacement); })
+    .attr("cy", function(d) { return y(d.mpg); })
+	.on("mouseover",function (d) { d3.select('#hovered').text(d.name);});	
+
+$(document).ready(function(){
+    $("#selx").change(function(){
+        x.domain(d3.extent(data, function(d) { return d[selx.value]; })).range([0, width]);
+		svg.select(".x.axis").transition().call(xAxis);
+		svg.selectAll("circle").transition().attr("cx", function(d) {return x(d[selx.value]);});
+		svg.selectAll(".x.axis").selectAll("text.update").text(selx.value);
+    });
+});
+	
+
+$(document).ready(function(){
+    $("#sely").change(function(){
+        y.domain(d3.extent(data, function(d) { return d[sely.value]; })).range([height, 0]);
+		svg.select(".y.axis").transition().call(yAxis);
+		svg.selectAll("circle").transition().attr("cy", function(d) { return y(d[sely.value]); });
+		svg.selectAll(".y.axis").selectAll("text.update").text(sely.value);
+    });
+});	
+	
+
+flag = 0;
+$(document).ready(function(){
+    $("#alter").click(function(){
+    var min = mpgmin.value;
+	var max = mpgmax.value;
+	var xRef= selx.value;	
+	var yRef= sely.value;
+	
+	var newData = [];
+	for (var i = 0; i < data.length; i++) 
+		{
+			if (parseFloat(data[i]["mpg"]) <= parseFloat(max)  &&  parseFloat(data[i]["mpg"])>= parseFloat(min)) {
+				newData.push(data[i]);
+				flag= 1;
+			}
+		}
+	
+	if(flag == 0) {
+		alert("Please follow this format when entering the range: First Box=> Minimum, Second Box=> Maximum");
+	}
+	else {
+		flag=0;
+	}
+	console.log(newData);
+	//data = newData;
+    var points = svg.selectAll("circle")           
+		.data(newData);
+	points.enter().append("circle");
+	points.attr("r", 5)
+		.attr("cx", function(d) { return x(d[xRef]); })
+		.attr("cy", function(d) { return y(d[yRef]); })
+        .on("mouseover",function (d) {d3.select('#hovered').text(d.name);});
+    points.exit().remove();
+    });
+});
+
+});
+
+</script>
+</body>
+
+</html>
+
